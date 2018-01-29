@@ -1,0 +1,13 @@
+<?php
+use \Summoner\Console\Shell;
+
+require(__DIR__."/../define.php");
+require(__DIR__."/../vendor/autoload.php");
+require(__DIR__."/../vendor/Summoner/propertyToGetterSetter.php");
+require(__DIR__."/../vendor/Summoner/dump.php");
+require(__DIR__."/../vendor/Summoner/error_handler.php");
+
+$GLOBALS = array_merge($GLOBALS, require("config_env.php"));
+
+$Shell = new Shell($argv);
+$Shell->dispatch();
