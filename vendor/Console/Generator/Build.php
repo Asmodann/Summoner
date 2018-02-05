@@ -49,7 +49,7 @@ return [
   {
     echo "Generate: ".$this->value."\n";
     $db = Database::_getInstance();
-    $class_name = \Summoner\Changer\propertyToGetterSetter($this->value);
+    $class_name = propertyToGetterSetter($this->value);
     $result = $db->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '{$this->value}'");
     $fields = $result->fetchAll();
     $attra = [];
@@ -68,8 +68,8 @@ class {$class_name} extends Entity
     foreach ($fields as $value)
     {
       $var = $value['COLUMN_NAME'];
-      $get = "get".\Summoner\Changer\propertyToGetterSetter($var);
-      $set = "set".\Summoner\Changer\propertyToGetterSetter($var);
+      $get = "get".propertyToGetterSetter($var);
+      $set = "set".propertyToGetterSetter($var);
       $attr[] = "
   protected \${$var};";
       $body[] = $this->entityGetSet($var, $get, $set);
@@ -84,7 +84,6 @@ class {$class_name} extends Entity
 
   public function doController()
   {
-    echo "Generate: ".$this->value."\n";
     $content = "<?php
 namespace Summoner\Controller;
 
@@ -97,6 +96,18 @@ class {$this->value} extends Controller
     return \$this->render(__FUNCTION__);
   }
 }";
+  $viewc = "<p>
+  <b>Controller: </b>$this->value
+</p>
+<p>Welcome on your first view.</p>
+";
+  if ( !file_exists(__DIR__."/../../../templates/views/$this->value") && !mkdir(__DIR__."/../../../templates/views/$this->value") )
+  {
+    die("Permission error to create folder templates/views/$this->value");
+  }
   file_put_contents(__DIR__."/../../../src/Controller/".$this->value.".php", $content);
+  file_put_contents(__DIR__."/../../../templates/views/".$this->value."/index.syr.html", $viewc);
+  echo "Generate controller: ".$this->value."\n";
+  echo "Generate view: ".$this->value."/index.syr.html\n";
   }
 }

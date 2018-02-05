@@ -37,8 +37,7 @@ class Router
   public function setRoutesError($name, $type)
   {
     // $GLOBALS["ENVIRONMENT_DEV"];
-    $name = str_replace(".html", "", $name);
-    $this->routes_error[$type] = "{$name}.html";
+    $this->routes_error[$type] = "{$name}.syr.html";
     return $this;
   }
 

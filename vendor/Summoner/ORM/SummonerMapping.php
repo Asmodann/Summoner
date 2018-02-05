@@ -36,7 +36,7 @@ class SummonerMapping
     return new SummonerBuilder();
   }
 
-  protected function dataToObject($data, $entity = false, $relation)
+  protected function dataToObject($data, $entity = false)
   {
     if (!$entity)
       $entity = $this->entity;
@@ -46,7 +46,7 @@ class SummonerMapping
       $key = "set".propertyToGetterSetter($key);
       $entity->$key($value);
     }
-    if ( file_exists(__DIR__."/../../../src/Entity/relations/{$entity->getClassName()}.relation.php") && $relation == true )
+    if ( file_exists(__DIR__."/../../../src/Entity/relations/{$entity->getClassName()}.relation.php") )
     {
       $relations = require(__DIR__."/../../../src/Entity/relations/{$entity->getClassName()}.relation.php");
       $this->mappingObject($relations, $entity);
@@ -54,37 +54,47 @@ class SummonerMapping
     return $entity;
   }
 
-  protected function execute($value, $entity, $relation)
+  protected function execute($value, $entity)
   {
     $this->stmt->setFetchMode(PDO::FETCH_OBJ);
     $this->stmt->execute($value);
     $data = $this->stmt->fetch();
     if ( !$data ) return false;
-    return $this->dataToObject($data, $entity, $relation);
+    return $this->dataToObject($data, $entity);
   }
 
-  protected function executeAll($value, $entity, $relation)
+  protected function executeAll($value, $entity)
   {
-    
+    $this->stmt->setFetchMode(PDO::FETCH_OBJ);
+    if ( empty($value) )
+      $this->stmt->execute();
+    else
+      $this->stmt->execute([$value]);
+    $data = $this->stmt->fetchAll();
+    if ( !$data ) return false;
+    $entities = [];
+    foreach ($data as $value)
+      $entities[] = $this->dataToObject($value, new $entity);
+    return $entities;
   }
 
-  public function find($value, $entity = false, $relation = true)
+  public function find($value, $entity = false)
   {
     if ( !$entity )
       $entity = new $this->entity();
     $this->stmt = self::$instance_->prepare("SELECT * FROM {$entity->getTableName()} WHERE id = ?");
-    return $this->execute([$value], $entity, $relation);
+    return $this->execute([$value], $entity);
   }
 
-  public function findBy($field, $value, $entity = false, $relation = true)
+  public function findBy($field, $value, $entity = false)
   {
     if ( !$entity )
       $entity = new $this->entity();
     $this->stmt = self::$instance_->prepare("SELECT * FROM {$entity->getTableName()} WHERE {$field} = ?");
-    return $this->execute([$value], $entity, $relation);
+    return $this->execute([$value], $entity);
   }
 
-  public function findAll($value = 0, $field = null, $entity = null, $relation = true)
+  public function findAll($value = 0, $field = null, $entity = null)
   {
     $str = " WHERE {$field} = ?";
     if ($value == 0 && $field == null)
@@ -93,19 +103,7 @@ class SummonerMapping
       $entity = new $this->entity();
 
     $this->stmt = self::$instance_->prepare("SELECT * FROM {$entity->getTableName()}{$str} ORDER BY {$field} DESC");
-    $this->stmt->setFetchMode(PDO::FETCH_OBJ);
-
-    if ( empty($str) )
-      $this->stmt->execute();
-    else
-      $this->stmt->execute([$value]);
-
-    $data = $this->stmt->fetchAll();
-    if ( !$data ) return false;
-    $entities = [];
-    foreach ($data as $value)
-      $entities[] = $this->dataToObject($value, new $entity, $relation);
-    return $entities;
+    return $this->executeAll($value, $entity);
   }
 
   public function save(&$entity)
@@ -120,10 +118,20 @@ class SummonerMapping
     return $this->update($entity, $schema);
   }
 
-  public function delete(&$entity, $field = "id", $recursive = false)
+  public function delete(&$entity, $value, $recursive = false)
   {
     // Delete entity via $field
     // if $recursive => delete all relations
+    $this->stmt = self::$instance_->prepare("DELETE FROM {$entity->getTableName()} WHERE id = ?");
+    $this->stmt->execute([$value]);
+    /*if ( $recursive )
+    {
+      if ( file_exists(__DIR__."/../../../src/Entity/relations/{$entity->getClassName()}.relation.php") )
+      {
+        $relations = require(__DIR__."/../../../src/Entity/relations/{$entity->getClassName()}.relation.php");
+        $this->mappingObjectDelete($relations, $entity);
+      }
+    }*/
   }
 
   protected function insert(&$entity, $schema)
@@ -180,6 +188,8 @@ class SummonerMapping
   {
     foreach ($relations as $attr => $options)
     {
+      if ( $options['class'] === $this->entity )
+        continue;
       $obj = new $options['class']();
       $func = $options['type'];
       $set = "set".propertyToGetterSetter($attr);
@@ -193,8 +203,8 @@ class SummonerMapping
     $in = 'id';
     if ( isset($relation['field_in']) )
       $in = $relation['field_in'];
-    $getSearch = "get".propertyToGetterSetter($in);
-    return $this->findAll($entity->$getSearch(), $out, $class, false);
+    $getSearch = "get".propertyToGetterSetter($out);
+    return $this->findAll($entity->$getSearch(), $in, $class, false);
   }
 
   protected function OneToOne($class, $relation, $entity)
@@ -203,7 +213,7 @@ class SummonerMapping
     $in = 'id';
     if ( isset($relation['field_in']) )
       $in = $relation['field_in'];
-    $getSearch = "get".propertyToGetterSetter($in);
-    return $this->findBy($out, $entity->$getSearch(), $class, false);
+    $getSearch = "get".propertyToGetterSetter($out);
+    return $this->findBy($in, $entity->$getSearch(), $class, false);
   }
 }

@@ -89,17 +89,13 @@ class Controller
 
   private function notfound_error($path)
   {
-    if ( $GLOBALS["PAGE_NOT_FOUND_LAYOUT"] )
-      return $this->render($path, [], true);
-
-    return $this->partialRender($path, [], true);
+    // if ( $GLOBALS["PAGE_NOT_FOUND_LAYOUT"] )
+    return $this->render($path, [], true);
   }
 
   private function internal_error($path)
   {
-    if ( $GLOBALS["PAGE_INTERNAL_ERROR_LAYOUT"] )
-      return $this->render($path, [], true);
-
-    return $this->partialRender($path, [], true);
+    // if ( $GLOBALS["PAGE_INTERNAL_ERROR_LAYOUT"] )
+    return $this->render($path, [], true);
   }
 }

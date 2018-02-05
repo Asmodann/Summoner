@@ -21,14 +21,14 @@ class View
 
   private function hasView($class, $view)
   {
-    $view = "$view.html";
+    $view = "$view.syr.html";
     $path = ROOT.implode(DIRECTORY_SEPARATOR, ["templates", "views", $class, $view]);
     return (file_exists($path) ? $path : false);
   }
 
   private function hasLayout($layout)
   {
-    $layout = "$layout.html";
+    $layout = "$layout.syr.html";
     $path = ROOT.implode(DIRECTORY_SEPARATOR, ["templates", "layouts", $layout]);
     return (file_exists($path) ? $path : false);
   }
@@ -38,24 +38,13 @@ class View
     $tview = $view;
     if ( !$is_file )
     {
-      $tmp = explode("#", $view);
-      $tview = array_shift($tmp);
-
-      $view = $this->hasView($class, $tview);
+      $view = $this->hasView($class, $view);
     }
-    $layout = (empty($tmp) ? $this->layout : array_shift($tmp));
-    unset($tmp);
-    $layout = $this->hasLayout($layout);
     if (!$view)
-      trigger_error("Cannot load view: {$tview} on class {$class}");
-    if ($layout)
-    {
-      $this->content = file_get_contents($layout);
-      $this->content = str_replace("[ content ]", file_get_contents($view), $this->content);
-    }
-    else
+      trigger_error("Cannot load view: {$tview}.syr.html on class {$class}");
       $this->content = file_get_contents($view);
-
+      
+    $this->replaceSyr();
     $this->replaceContent();
     $this->replaceConditions();
     $this->replaceLoop();
@@ -92,6 +81,24 @@ class View
     ob_start();
       eval( "?>".$this->content."<?php" );
     return ob_get_clean();
+  }
+
+  private function replaceSyr()
+  {
+    $this->content = preg_replace_callback("/{% template (.*) }/Us", function($match) {
+      array_shift($match);
+      $file = array_shift($match);
+      ob_start();
+        require(__DIR__."/../../../templates/layouts/{$file}.syr.html");
+      return ob_get_clean();
+    }, $this->content);
+    preg_replace_callback("/{% block\[(.*)\] }(.*){% endblock }/Us", function($match) {
+      $m = array_shift($match);
+      $block = array_shift($match);
+      $content = array_shift($match);
+      $this->content = preg_replace("/{% block {$block} }/U", $content, $this->content);
+      $this->content = preg_replace("/{% block\[(.*)\] }(.*){% endblock }/Us", "", $this->content);
+    }, $this->content);
   }
 
   private function replaceContent()
