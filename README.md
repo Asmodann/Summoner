@@ -1,6 +1,13 @@
 # Summoner
 Micro framework full php from scratch
 
+__How to start my server?__
+
+*With php server*
+> php -S 127.0.0.1:4000
+
+*Without php server*
+> Configure .htaccess
 
 ## Console
 __You can use some commands to generate files:__
